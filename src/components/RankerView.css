@@ -1,0 +1,28 @@
+.ranker-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .ranker-item {
+    user-select: none;
+    padding: 16px;
+    margin: 0 0 8px 0;
+    min-height: 50px;
+    color: white;
+    cursor: grab;
+    transition: all 0.3s ease;
+  }
+  
+  .ranker-item:active {
+    cursor: grabbing;
+  }
+  
+  .submit-button {
+    margin-top: 16px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
