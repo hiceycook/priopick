@@ -212,6 +212,12 @@ function AdminPanel({ user, onLogout }) {
     }
   };
 
+  const canRunDraft = () => {
+    if (!currentCollection) return false;
+    if (currentCollection.rankers.length === 0) return false;
+    return currentCollection.rankers.every(ranker => ranker.hasSubmitted);
+  };
+
   console.log('Rendering AdminPanel with:', { collections, currentCollectionId, currentCollection, user });
 
   return (
@@ -327,7 +333,20 @@ function AdminPanel({ user, onLogout }) {
           onExport={handleExportDraft}
         />
       )}
-      <button onClick={handleDraft}>Run Draft</button>
+      <button 
+        onClick={handleDraft} 
+        disabled={!canRunDraft()}
+        title={!canRunDraft() ? "Cannot run draft: No rankers or unsubmitted rankings" : "Run Draft"}
+      >
+        Run Draft
+      </button>
+      {!canRunDraft() && (
+        <p style={{color: 'red'}}>
+          {currentCollection && currentCollection.rankers.length === 0 
+            ? "No rankers available" 
+            : "Some rankers haven't submitted their rankings"}
+        </p>
+      )}
     </div>
   );
 }
