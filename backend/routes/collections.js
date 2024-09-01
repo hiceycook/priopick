@@ -98,4 +98,24 @@ router.post('/:id/rankers', async (req, res) => {
 	}
 });
 
+// Delete a ranker from a collection
+router.delete('/:collectionId/rankers/:rankerId', async (req, res) => {
+	try {
+		const { collectionId, rankerId } = req.params;
+		const collection = await Collection.findById(collectionId);
+		
+		if (!collection) {
+			return res.status(404).json({ message: 'Collection not found' });
+		}
+		
+		collection.rankers = collection.rankers.filter(ranker => ranker._id.toString() !== rankerId);
+		await collection.save();
+		
+		res.json({ message: 'Ranker removed successfully' });
+	} catch (error) {
+		console.error('Error removing ranker:', error);
+		res.status(500).json({ message: 'Error removing ranker', error: error.toString() });
+	}
+});
+
 module.exports = router;

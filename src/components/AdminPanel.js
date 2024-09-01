@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getCollections, createCollection, updateCollection, deleteCollection, addRanker } from '../utils/api';
+import api from '../utils/api';
 import './AdminPanel.css';
+import RankerListModal from './RankerListModal';
+import { snakeDraft } from '../utils/draftAlgorithm';
+import DraftResultsModal from './DraftResultsModal';
 
 function AdminPanel({ user, onLogout }) {
   const [collections, setCollections] = useState([]);
@@ -10,6 +14,10 @@ function AdminPanel({ user, onLogout }) {
   const [editingItemId, setEditingItemId] = useState(null);
   const [error, setError] = useState('');
   const [rankerEmail, setRankerEmail] = useState('');
+  const [selectedRanker, setSelectedRanker] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [draftResults, setDraftResults] = useState(null);
+  const [showDraftModal, setShowDraftModal] = useState(false);
 
   useEffect(() => {
     fetchCollections();
@@ -17,7 +25,7 @@ function AdminPanel({ user, onLogout }) {
 
   const fetchCollections = async () => {
     try {
-      const response = await getCollections();
+      const response = await api.get('/collections');
       console.log('Fetched collections:', response.data);
       setCollections(response.data);
       if (response.data.length > 0 && !currentCollectionId) {
@@ -25,7 +33,7 @@ function AdminPanel({ user, onLogout }) {
       }
     } catch (err) {
       console.error('Error fetching collections:', err);
-      setError('Failed to fetch collections');
+      setError('Failed to fetch collections: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -139,7 +147,53 @@ function AdminPanel({ user, onLogout }) {
     }
   };
 
+  const handleRemoveRanker = async (rankerId) => {
+    if (!currentCollectionId) {
+      setError('No collection selected');
+      return;
+    }
+    try {
+      await api.delete(`/collections/${currentCollectionId}/rankers/${rankerId}`);
+      console.log('Ranker removed successfully');
+      fetchCollections(); // Refresh the collections after removing a ranker
+    } catch (err) {
+      console.error('Error removing ranker:', err);
+      setError('Failed to remove ranker: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleViewRankerList = (ranker) => {
+    // Ensure the ranker object includes the full collection data
+    const rankerWithCollection = {
+      ...ranker,
+      collection: currentCollection
+    };
+    console.log('Ranker data being passed to modal:', rankerWithCollection);
+    setSelectedRanker(rankerWithCollection);
+    setShowModal(true);
+  };
+
   const currentCollection = collections.find(c => c._id === currentCollectionId);
+
+  const handleDraft = () => {
+    if (!currentCollection) return;
+
+    const items = currentCollection.items.map(item => item.name);
+    const desired = currentCollection.rankers.map(ranker => 
+      ranker.rankings.map(itemId => {
+        const item = currentCollection.items.find(i => i._id === itemId);
+        return item ? item.name : null;
+      }).filter(Boolean)
+    );
+    const acquired = currentCollection.rankers.map(() => []);
+
+    const result = snakeDraft(items, desired, acquired);
+
+    console.log('Draft result:', result);
+    setDraftResults(result);
+    setShowDraftModal(true);
+    // TODO: Update the backend with the draft results
+  };
 
   console.log('Rendering AdminPanel with:', { collections, currentCollectionId, currentCollection, user });
 
@@ -222,17 +276,19 @@ function AdminPanel({ user, onLogout }) {
             </form>
           </div>
           {currentCollection.rankers && currentCollection.rankers.length > 0 && (
-            <div className="rankers-list">
+            <div>
               <h4>Rankers</h4>
               <ul>
-                {currentCollection.rankers.map((ranker, index) => (
-                  <li key={index}>
+                {currentCollection.rankers.map((ranker) => (
+                  <li key={ranker._id}>
                     {ranker.email} - {ranker.hasSubmitted ? 'Submitted' : 'Pending'}
                     {!ranker.hasSubmitted && (
                       <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/rank/${ranker.accessCode}`)}>
                         Copy Link
                       </button>
                     )}
+                    <button onClick={() => handleRemoveRanker(ranker._id)}>Remove</button>
+                    <button onClick={() => handleViewRankerList(ranker)}>View List</button>
                   </li>
                 ))}
               </ul>
@@ -240,6 +296,20 @@ function AdminPanel({ user, onLogout }) {
           )}
         </div>
       )}
+      {showModal && (
+        <RankerListModal
+          ranker={selectedRanker}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+      {showDraftModal && draftResults && (
+        <DraftResultsModal
+          results={draftResults}
+          rankers={currentCollection.rankers}
+          onClose={() => setShowDraftModal(false)}
+        />
+      )}
+      <button onClick={handleDraft}>Run Draft</button>
     </div>
   );
 }

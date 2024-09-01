@@ -5,6 +5,10 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
+const generateToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+};
+
 router.post('/register', async (req, res) => {
   console.log('Registration attempt:', req.body); // Log the request body
   try {
@@ -37,22 +41,20 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.body.username });
-    if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-      return res.status(401).send({ error: 'Invalid login credentials' });
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
-    const token = generateToken(user);
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        // ... other user data you want to include
-      }
-    });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    const token = generateToken(user._id);
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(400).send(error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
