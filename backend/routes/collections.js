@@ -118,4 +118,22 @@ router.delete('/:collectionId/rankers/:rankerId', async (req, res) => {
 	}
 });
 
+// Fetch a single collection with populated rankers' rankings
+router.get('/:id', async (req, res) => {
+	try {
+		const collection = await Collection.findById(req.params.id)
+			.populate({
+				path: 'rankers.rankings',
+				model: 'Item'
+			});
+		if (!collection) {
+			return res.status(404).json({ message: 'Collection not found' });
+		}
+		res.json(collection);
+	} catch (error) {
+		console.error('Error fetching collection:', error);
+		res.status(500).json({ message: 'Error fetching collection', error: error.toString() });
+	}
+});
+
 module.exports = router;

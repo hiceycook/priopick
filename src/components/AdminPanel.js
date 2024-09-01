@@ -3,7 +3,7 @@ import { getCollections, createCollection, updateCollection, deleteCollection, a
 import api from '../utils/api';
 import './AdminPanel.css';
 import RankerListModal from './RankerListModal';
-import { snakeDraft } from '../utils/draftAlgorithm';
+import { snakeDraft, draftResultsToCSV } from '../utils/draftAlgorithm';
 import DraftResultsModal from './DraftResultsModal';
 
 function AdminPanel({ user, onLogout }) {
@@ -195,6 +195,23 @@ function AdminPanel({ user, onLogout }) {
     // TODO: Update the backend with the draft results
   };
 
+  const handleExportDraft = () => {
+    if (!draftResults || !currentCollection) return;
+
+    const csvContent = draftResultsToCSV(draftResults, currentCollection.rankers);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `draft_results_${currentCollection.name}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   console.log('Rendering AdminPanel with:', { collections, currentCollectionId, currentCollection, user });
 
   return (
@@ -307,6 +324,7 @@ function AdminPanel({ user, onLogout }) {
           results={draftResults}
           rankers={currentCollection.rankers}
           onClose={() => setShowDraftModal(false)}
+          onExport={handleExportDraft}
         />
       )}
       <button onClick={handleDraft}>Run Draft</button>

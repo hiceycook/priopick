@@ -1,6 +1,6 @@
 import React from 'react';
 
-function DraftResultsModal({ results, rankers, onClose }) {
+function DraftResultsModal({ results, rankers, onClose, onExport }) {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
@@ -16,6 +16,7 @@ function DraftResultsModal({ results, rankers, onClose }) {
           </div>
         ))}
         <button onClick={onClose}>Close</button>
+        <button onClick={onExport}>Export to CSV</button>
       </div>
     </div>
   );

@@ -37,3 +37,26 @@ export function snakeDraft(items, desired, acquired) {
 
   return acquiredCopy;
 }
+
+export function draftResultsToCSV(results, rankers) {
+  // Find the maximum number of items any ranker has
+  const maxItems = Math.max(...results.map(rankerResults => rankerResults.length));
+
+  // Create headers
+  const headers = ['Rank', ...rankers.map(r => r.email)];
+
+  // Create rows
+  const rows = [];
+  for (let i = 0; i < maxItems; i++) {
+    const row = [i + 1]; // Rank
+    for (let j = 0; j < results.length; j++) {
+      row.push(results[j][i] || ''); // Item for each ranker, or empty string if no item
+    }
+    rows.push(row.join(','));
+  }
+
+  // Combine headers and rows
+  const csvContent = [headers.join(','), ...rows].join('\n');
+  
+  return csvContent;
+}
